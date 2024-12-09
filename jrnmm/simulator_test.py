@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 import rpy2.robjects as robjects
 from jax import numpy as jnp, random as jr
-from jrnmm.simulator import cov_mats, exp_mat, mult_cm, mult_dm, ode, sde
+from jrnmm.simulator import cov_mats, exp_mat, mult_cm, mult_dm, ode, sde, simulate
 from rpy2.robjects.packages import importr
 
 sdbmp = importr("sdbmsABC")
@@ -13,6 +13,71 @@ sdbmp = importr("sdbmsABC")
 rset_seed = robjects.r["set.seed"]
 rchol = robjects.r["chol"]
 rt = robjects.r["t"]
+
+
+def test_simulator_vector_scalar():
+    initial_states = jr.normal(jr.PRNGKey(1), (6,))
+    y = simulate(jr.PRNGKey(2), dt=0.1, t_end=10, initial_states=initial_states)
+    chex.assert_shape(y, (1,  100, 1))
+
+
+def test_simulator_vector_vector():
+    initial_states = jr.normal(jr.PRNGKey(1), (6,))
+    y = simulate(
+    jr.PRNGKey(2),
+        dt=0.1,
+        t_end=10,
+        initial_states = initial_states,
+        Cs = jr.uniform(jr.PRNGKey(3), (10,), minval=10, maxval=250),
+        mus = jr.uniform(jr.PRNGKey(4), (10,), minval=50, maxval=500),
+        sigmas = jr.uniform(jr.PRNGKey(5), (10,), minval=100, maxval=5000),
+        gains = jr.uniform(jr.PRNGKey(6), (10,), minval=-20, maxval=20)
+    )
+    chex.assert_shape(y, (10, 100, 1))
+
+
+@pytest.mark.parametrize("shape", [(6,), (1, 6), (10, 6)])
+def test_simulator_matrix_vector(shape):
+    initial_states = jr.normal(jr.PRNGKey(1), shape)
+    y = simulate(
+    jr.PRNGKey(2),
+        dt = 0.1,
+        t_end = 10,
+        initial_states = initial_states,
+        Cs = jr.uniform(jr.PRNGKey(3), (10,), minval=10, maxval=250),
+        mus = jr.uniform(jr.PRNGKey(4), (10,), minval=50, maxval=500),
+        sigmas = jr.uniform(jr.PRNGKey(5), (10,), minval=100, maxval=5000),
+        gains = jr.uniform(jr.PRNGKey(6), (10,), minval=-20, maxval=20)
+    )
+    chex.assert_shape(y, (10,  100, 1))
+
+
+def test_fail_simulator():
+    initial_states = jr.normal(jr.PRNGKey(1), (9, 6))
+    with pytest.raises(AssertionError):
+        simulate(
+            jr.PRNGKey(2),
+                dt = 0.1,
+                t_end = 10,
+                initial_states = initial_states,
+                Cs = jr.uniform(jr.PRNGKey(3), (10,), minval=10, maxval=250),
+                mus = jr.uniform(jr.PRNGKey(4), (10,), minval=50, maxval=500),
+                sigmas = jr.uniform(jr.PRNGKey(5), (10,), minval=100, maxval=5000),
+                gains = jr.uniform(jr.PRNGKey(6), (10,), minval=-20, maxval=20)
+            )
+
+
+
+@pytest.mark.parametrize("shape", [(6,), (1, 6)])
+def test_simulator_matrix_scalar(shape):
+    initial_states = jr.normal(jr.PRNGKey(1), shape)
+    y = simulate(
+        jr.PRNGKey(2),
+        dt = 0.1,
+        t_end = 10,
+        initial_states = initial_states
+    )
+    chex.assert_shape(y, (1,  100, 1))
 
 
 @pytest.mark.parametrize(
