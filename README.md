@@ -5,7 +5,7 @@
 
 ## About
 
-This package implements a pure Python/JAX port of the Jansen-Rit neural mass model (JRNMM) from [sdbmpABC](https://github.com/massimilianotamborrino/sdbmpABC).
+This package implements a pure Python/JAX port of the Jansen-Rit neural mass model (JRNMM) from [sdbmpABC](https://github.com/massimilianotamborrino/sdbmpABC). The implementation is vectorized, so should be fairly fast in comparison.
 
 ## Example use
 
@@ -95,6 +95,53 @@ plt.show()
 
 ![png](README_files/README_5_0.png)
 
+
+
+Some timings:|
+
+
+```python
+from timeit import default_timer as timer
+
+n_iter = 1_000
+
+timings_r = []
+for i in range(10):
+    start = timer()
+    for i in range(n_iter):
+        y = jnp.array(
+            sdbmp.Splitting_JRNMM_output_Cpp(
+                dt, y0, grid, dm, cm, mu, C, 3.25, 22, 100, 50, 6, 0.56, 5.0
+            )
+        )
+    end = timer() - start
+    timings_r.append(end)
+
+timings_jax = []
+for i in range(10):
+    start = timer()
+    y = simulate(
+        jr.PRNGKey(1),
+        dt=1 / 128,
+        t_end=8,
+        initial_states=jnp.array([0.08, 18, 15, -0.5, 0, 0]),
+        Cs=jnp.full(n_iter, C),
+        mus=jnp.full(n_iter, mu),
+        sigmas=jnp.full(n_iter, sigma),
+        gains=jnp.full(n_iter, gain),
+    )
+    end = timer() - start
+    timings_jax.append(end)
+```
+
+
+```python
+print(f"Timings R/C++: {sum(timings_r) / 5}")
+print(f"Timings JAX: {sum(timings_jax) / 5}")
+```
+
+    Timings R: 7.931266916800814
+    Timings JAX: 1.3753599164017942
 
 
 ## Installation
