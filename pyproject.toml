@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name =  "jrnmm"
+description = "Sentence that is used as description in project.toml"
+authors = [{name = "Simon Dirmeier", email = "sfyrbnd@pm.me"}]
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "jax>=0.4.36",
+    "numpy>=2.1.3",
+    "chex>=0.1.87",
+    "einops>=0.8.0",
+]
+dynamic = ["version"]
+
+[tool.setuptools]
+packages = ["jrnmm"]
+
+[tool.setuptools.dynamic]
+version = {attr = "jrnmm.__init__.__version__"}
+
+[tool.uv]
+managed = true
+dev-dependencies = [
+    "rpy2==3.5.12",
+    "pytest>=8.3.4",
+    "matplotlib>=3.9.3",
+    "scipy>=1.14.1",
+    "jupyter>=1.1.1",
+]
+
+[tool.uv.workspace]
+members = ["example"]
+
+[tool.bandit]
+skips = ["B101"]
+
+[tool.ruff]
+line-length = 120
+exclude = ["*_test.py", ".venv/**"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+extend-select = [
+  "UP", "I", "PL", "S"
+]
+ignore = ["S301", "PLR0913", "S101", "PLR2004", "S603", "S607"]
