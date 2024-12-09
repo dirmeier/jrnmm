@@ -27,6 +27,7 @@ jobs:
       - name: Install R packages
         run: |
           Rscript -e "install.packages('remotes', repos='https://ftp.belnet.be/mirror/CRAN')"
+          Rscript -e "gitcreds::gitcreds_set()"
           Rscript -e "remotes::install_github('massimilianotamborrino/sdbmpABC')"
       - name: Set up Python
         uses: actions/setup-python@v5
