@@ -5,9 +5,9 @@
 
 ## About
 
-This package implements a pure Python/JAX port of the Jansen-Rit neural mass model (JRNMM) from [sdbmpABC](https://github.com/massimilianotamborrino/sdbmpABC). The implementation is vectorized, so should be fairly fast in comparison.
+This package implements a pure Python/JAX port of the Jansen-Rit neural mass model (JRNMM) from [`sdbmpABC`](https://github.com/massimilianotamborrino/sdbmpABC). The implementation is vectorized, so should be fairly fast in comparison.
 
-## Example use
+## Examples
 
 You can use the package to simulate the readout of the JRNMM like this:
 
@@ -57,7 +57,7 @@ plt.show()
 
 
 
-Compare this to the sdbmpABC solution:
+Compare this to the `sdbmpABC` solution:
 
 
 ```python
@@ -73,7 +73,7 @@ _, axes = plt.subplots(figsize=(12, 3), ncols=2)
 for i in range(20):
     dt = 1/128
     y0 = robjects.FloatVector(list([0.08, 18, 15, -0.5, 0, 0]))
-    grid = robjects.FloatVector(list(jnp.arange(0, 8.0 + dt, dt)))
+    grid = robjects.FloatVector(list(jnp.arange(0, 8.0, dt)))
     dm = sdbmp.exp_matJR(dt, 100, 50)
     cm = rt(
         rchol(sdbmp.cov_matJR(dt, robjects.FloatVector([0, 0, 0, 0.01, sigma, 1.0]), 100, 50))
@@ -97,16 +97,17 @@ plt.show()
 
 
 
-Some timings:|
+Some timing comparison against `sdbmpABC`:
 
 
 ```python
 from timeit import default_timer as timer
 
+n_repeat = 10
 n_iter = 1_000
 
 timings_r = []
-for i in range(10):
+for i in range(n_repeat):
     start = timer()
     for i in range(n_iter):
         y = jnp.array(
@@ -118,11 +119,11 @@ for i in range(10):
     timings_r.append(end)
 
 timings_jax = []
-for i in range(10):
+for i in range(n_repeat):
     start = timer()
     y = simulate(
         jr.PRNGKey(1),
-        dt=1 / 128,
+        dt=dt,
         t_end=8,
         initial_states=jnp.array([0.08, 18, 15, -0.5, 0, 0]),
         Cs=jnp.full(n_iter, C),
@@ -136,17 +137,17 @@ for i in range(10):
 
 
 ```python
-print(f"Timings R/C++: {sum(timings_r) / 5}")
-print(f"Timings JAX: {sum(timings_jax) / 5}")
+print(f"Average time R/C++ to produce {n_iter} trajectories: {sum(timings_r) / n_repeat}")
+print(f"Average time JAX to produce {n_iter} trajectories: {sum(timings_jax) / n_repeat}")
 ```
 
-    Timings R: 7.931266916800814
-    Timings JAX: 1.3753599164017942
+    Average time R/C++ to produce 1000 trajectories: 3.9917746584003906
+    Average time JAX to produce 1000 trajectories: 0.6860150751999754
 
 
 ## Installation
 
-To instal from GitHub, just call:
+To install from GitHub, just call:
 
 ```bash
 pip install git+https://github.com/dirmeier/jrnmm@<RELEASE>
