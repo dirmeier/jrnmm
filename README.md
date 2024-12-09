@@ -1,52 +1,111 @@
 # jrnmm
 
-[![status](http://www.repostatus.org/badges/latest/concept.svg)](http://www.repostatus.org/#concept)
-[![ci](https://github.com/dirmeier/jrnmm/actions/workflows/ci.yaml/badge.svg)](https://github.com/dirmeier/jrnmm/actions/workflows/ci.yaml)
-
-> Sentence that is used as description in project.toml
+[![Project Status](http://www.repostatus.org/badges/latest/concept.svg)](http://www.repostatus.org/#concept)
+[![ci](https://github.com/dirmeier/jrnmm/workflows/ci/badge.svg)](https://github.com/dirmeier/jrnmm/actions?query=workflow%3Aci)
 
 ## About
 
-TODO
+This package implements a pure Python/JAX port of the Jansen-Rit neural mass model (JRNMM) from [sdbmpABC](https://github.com/massimilianotamborrino/sdbmpABC).
 
-## Example usage
+## Example use
 
+You can use the package to simulate the readout of the JRNMM like this:
+
+
+```python
+%matplotlib inline
+import fybdthemes
+import matplotlib.pyplot as plt
+
+from jax import numpy as jnp
+from jax import random as jr
+from jax.scipy.signal import welch
+from jrnmm import simulate
+
+fybdthemes.set_theme()
+
+# this samples 20 trajectories of length 8 / (1 / 128)
+# each with initial condition [0.08, 18, 15, -0.5, 0, 0]
+# and the same C, mu, sigma and gains
+n = 20
+C, mu, sigma, gain = 135, 220, 2000, 0.0
+y = simulate(
+    jr.PRNGKey(1),
+    dt=1 / 128,
+    t_end=8,
+    initial_states=jnp.array([0.08, 18, 15, -0.5, 0, 0]),
+    Cs=jnp.full(n, C),
+    mus=jnp.full(n, mu),
+    sigmas=jnp.full(n, sigma),
+    gains=jnp.full(n, gain),
+)
+f, s = welch(y, fs=128, axis=1, nperseg=64)
+
+_, axes = plt.subplots(figsize=(12, 3), ncols=2)
+colors = fybdthemes.discrete_sequential_colors(n)
+for i in range(20):
+    axes[0].plot(y[i, :], color=colors[i], alpha=0.23)
+    axes[1].plot(jnp.log(s[i, :]), color=colors[i], alpha=0.23)
+axes[0].set_title("Readout", fontsize=13)
+axes[1].set_title("Periodogram", fontsize=13)
+plt.show()
 ```
 
-def run():
-    sig = 2000
-    mu = 220.0
-    C = 135.0
-    gain = 0.0
-    y = simulate(
-        jr.PRNGKey(12),
-        1 / 128,
-        8,
-        initial_states=jnp.array([0.08, 18, 15, -0.5, 0, 0]),
-        Cs=jnp.full(20, C),
-        mus=jnp.full(20, mu),
-        sigmas=jnp.full(20, sig),
-        gains=jnp.full(20, gain),
+
+
+![png](README_files/README_3_0.png)
+
+
+
+Compare this to the sdbmpABC solution:
+
+
+```python
+import rpy2.robjects as robjects
+from rpy2.robjects.packages import importr
+sdbmp = importr("sdbmsABC")
+
+rset_seed = robjects.r["set.seed"]
+rchol = robjects.r["chol"]
+rt = robjects.r["t"]
+
+_, axes = plt.subplots(figsize=(12, 3), ncols=2)
+for i in range(20):
+    dt = 1/128
+    y0 = robjects.FloatVector(list([0.08, 18, 15, -0.5, 0, 0]))
+    grid = robjects.FloatVector(list(jnp.arange(0, 8.0 + dt, dt)))
+    dm = sdbmp.exp_matJR(dt, 100, 50)
+    cm = rt(
+        rchol(sdbmp.cov_matJR(dt, robjects.FloatVector([0, 0, 0, 0.01, sigma, 1.0]), 100, 50))
     )
-    print(y.shape)
-    f, s = welch(y, fs=128, axis=1, nperseg=64)
-    for i in range(20):
-        plt.plot(10 * jnp.log10(s[i, :]))
-    plt.show()
-
-
-if __name__ == "__main__":
-    run()
+    y = jnp.array(
+        sdbmp.Splitting_JRNMM_output_Cpp(
+            dt, y0, grid, dm, cm, mu, C, 3.25, 22, 100, 50, 6, 0.56, 5.0
+        )
+    )
+    f, s = welch(y, fs=128, nperseg=64)
+    axes[0].plot(y, color=colors[i], alpha=0.23)
+    axes[1].plot(jnp.log(s), color=colors[i], alpha=0.23)
+axes[0].set_title("Readout", fontsize=13)
+axes[1].set_title("Periodogram", fontsize=13)
+plt.show()
 ```
+
+
+
+![png](README_files/README_5_0.png)
+
+
 
 ## Installation
 
-To install the latest GitHub <RELEASE>, just call the following on the
-command line:
+To instal from GitHub, just call:
 
 ```bash
 pip install git+https://github.com/dirmeier/jrnmm@<RELEASE>
 ```
+
+where `<RELEASE>` versions can be found [here](https://github.com/dirmeier/jrnmm/releases).
 
 ## Author
 

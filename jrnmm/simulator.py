@@ -1,18 +1,17 @@
 import chex
 import jax
+from einops import rearrange
+from jax import numpy as jnp
+from jax import random as jr
+from jax.scipy.linalg import cholesky
 
 jax.config.update("jax_enable_x64", True)
-
-import jax.lax
-from einops import rearrange
-from jax import random as jr, numpy as jnp
-from jax.scipy.linalg import cholesky
 
 
 def simulate(
     rng_key,
     dt,
-    T_end,
+    t_end,
     initial_states,
     Cs,
     mus,
@@ -29,7 +28,7 @@ def simulate(
     r=0.56,
 ):
     chex.assert_equal_shape([Cs, mus, sigmas, gains])
-    n_iter = len(jnp.arange(0, T_end, dt))
+    n_iter = len(jnp.arange(0, t_end, dt))
     dm = exp_mat(dt, a, b)
     cms = cov_mats(dt, sigma_4, sigmas, sigma_6, a, b)
     C1 = Cs
