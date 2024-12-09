@@ -9,34 +9,95 @@ jax.config.update("jax_enable_x64", True)
 
 
 def simulate(
-    rng_key,
-    dt,
-    t_end,
-    initial_states,
-    Cs,
-    mus,
-    sigmas,
-    gains,
-    sigma_4=0.01,
-    sigma_6=1.0,
-    A=3.25,
-    B=22,
-    a=100,
-    b=50,
-    v0=6,
-    vmax=5.0,
-    r=0.56,
-):
-    chex.assert_equal_shape([Cs, mus, sigmas, gains])
+    rng_key: jr.PRNGKey,
+    dt: float,
+    t_end: float,
+    initial_states: jax.Array,
+    Cs: float | jax.Array = 135,
+    mus: float | jax.Array = 220,
+    sigmas: float | jax.Array = 2000,
+    gains: float | jax.Array = 0.0,
+    sigma_4: float = 0.01,
+    sigma_6: float = 1.0,
+    A: float = 3.25,
+    B: float = 22,
+    a: float = 100,
+    b: float = 50,
+    v0: float = 6,
+    vmax: float = 5.0,
+    r: float = 0.56,
+) -> jax.Array:
+    """Jansen-Rit neural mass model simulator.
+
+    Simulate realizations of the stochastic Jansen-Rit model [1-3].
+    The return value os the difference Y(t)^2 - Y(t)^3 in decibels.
+
+    Args:
+        rng_key: a JAX random key
+        dt: resolution at which time points are saved. This is the 'saveat'
+            argument in typical ODE/SDE solvers. However, for the
+            Strang splitting implementation, it is both the resolution of the
+            solver as well as the resolution at which time points are saved.
+            The lower the better.
+        t_end: end time point
+        initial_states: vector or matrix of initial conditions
+
+    Examples:
+        >>> from jax import numpy as jnp
+        >>> from jax import random as jr
+        >>> from jrnmm import simulate
+        >>>
+        >>> # simulate one trajectory
+        >>> initial_states = jr.normal(jr.PRNGKey(1), (6,))
+        >>> y = simulate(jr.PRNGKey(2), dt=0.1, t_end=10, initial_states=initial_states)
+        >>>
+        >>> # simulate 10 trajectories with the same initial condition and
+        >>> # different parameter values
+        >>> initial_states = jr.normal(jr.PRNGKey(1), (6,))
+        >>> y = simulate(
+        ...     jr.PRNGKey(2),
+        ...     dt=0.1,
+        ...     t_end=10,
+        ...     initial_states=initial_states,
+        ...     Cs=jr.uniform(jr.PRNGKey(3), (10,), minval=10, maxval=250),
+        ...     mus=jr.uniform(jr.PRNGKey(4), (10,), minval=50, maxval=500),
+        ...     sigmas=jr.uniform(jr.PRNGKey(5), (10,), minval=100, maxval=5000),
+        ...     gains=jr.uniform(jr.PRNGKey(6), (10,), minval=-20, maxval=20)
+        ... )
+        >>>
+        >>> # simulate 10 trajectories with different initial conditions and
+        >>> # different parameter values
+        >>> initial_states = jr.normal(jr.PRNGKey(1), (10, 6))
+        >>> y = simulate(
+        ...     jr.PRNGKey(2),
+        ...     dt=0.1,
+        ...     t_end=10,
+        ...     initial_states=initial_states,
+        ...     Cs=jr.uniform(jr.PRNGKey(3), (10,), minval=10, maxval=250),
+        ...     mus=jr.uniform(jr.PRNGKey(4), (10,), minval=50, maxval=500),
+        ...     sigmas=jr.uniform(jr.PRNGKey(5), (10,), minval=100, maxval=5000),
+        ...     gains=jr.uniform(jr.PRNGKey(6), (10,), minval=-20, maxval=20)
+        ... )
+
+    References:
+       .. [1] Rodrigues, Pedro, et al., "HNPE: Leveraging global parameters for
+           neural posterior estimation.",
+           Advances in Neural Information Processing Systems 34, 2021
+       .. [2] Ableidinger, Markus, Evelyn Buckwar, and Harald Hinterleitner.
+           "A stochastic version of the Jansen and Rit neural mass model:
+           Analysis and numerics."
+           The Journal of Mathematical Neuroscience, 2017
+       .. [3] Buckwar, Evelyn, Massimiliano Tamborrino, and Irene Tubikanec.
+           "Spectral density-based and measure-preserving ABC for partially
+           observed diffusion processes. An illustration on Hamiltonian SDEs."
+           Statistics and Computing, 2020
+    """
+    initial_states, Cs, mus, sigmas, gains = _preprocess(initial_states, Cs, mus, sigmas, gains)
+
     n_iter = len(jnp.arange(0, t_end, dt))
-    dm = exp_mat(dt, a, b)
-    cms = cov_mats(dt, sigma_4, sigmas, sigma_6, a, b)
-    C1 = Cs
-    C2 = 0.8 * C1
-    C3 = 0.25 * C1
-    C4 = C3
-    Aa = A * a
-    BbC = B * b * C4
+    dm, cms = exp_mat(dt, a, b), cov_mats(dt, sigma_4, sigmas, sigma_6, a, b)
+    C1, C2, C3, C4 = Cs, 0.8 * Cs, 0.25 * Cs, 0.25 * Cs
+    Aa, BbC = A * a, B * b * C4
 
     @jax.jit
     def _step(states, rng_key):
@@ -48,15 +109,37 @@ def simulate(
         return new_states, new_states
 
     sampling_keys = jr.split(rng_key, n_iter)
-    if initial_states.ndim == 1:
-        initial_states = jnp.tile(initial_states, [len(Cs), 1])
-    chex.assert_shape(initial_states, (len(Cs), 6))
     _, states = jax.lax.scan(_step, initial_states, sampling_keys)
 
     ret = states[..., [1]] - states[..., [2]]
     ret = jnp.power(10, gains.reshape(1, len(gains), 1) / 10) * ret
 
     return rearrange(ret, "t b l -> b t l")
+
+
+def _preprocess(initial_states, *args):
+    Cs, mus, sigmas, gains = (jnp.atleast_1d(arg) for arg in args)
+    chex.assert_equal_shape([Cs, mus, sigmas, gains])
+
+    initial_states = jnp.atleast_1d(initial_states)
+    chex.assert_equal(initial_states.shape[-1], 6)
+    initial_states = jnp.atleast_2d(initial_states).reshape(-1, 6)
+    if initial_states.ndim == 1 or initial_states.shape == (1, 6):
+        initial_states = jnp.tile(jnp.squeeze(initial_states), [len(Cs), 1])
+        chex.assert_shape(initial_states, (len(Cs), 6))
+    elif initial_states.ndim == 2 and len(Cs) == 1:
+        Cs = jnp.tile(Cs, [len(Cs), 1])
+        mus = jnp.tile(mus, [len(mus), 1])
+        sigmas = jnp.tile(Cs, [len(sigmas), 1])
+        gains = jnp.tile(Cs, [len(gains), 1])
+    elif initial_states.ndim == 2 and len(Cs) > 1:
+        chex.assert_equal(initial_states.shape[0], len(Cs))
+    else:
+        raise ValueError(
+            "something is wrong with the dimensionalities. " "please, check your inputs or file a issue at GitHub."
+        )
+
+    return initial_states, Cs, mus, sigmas, gains
 
 
 def ode(states, dt, Aa, mu, BbC, C1, C2, C3, vmax, v0, r):
