@@ -27,13 +27,9 @@ jobs:
       - name: Install R packages
         run: |
           Rscript -e "install.packages(c('remotes', 'gitcreds'), dependencies=TRUE)"
-          Rscript -e "gitcreds::gitcreds_get()"
-          Sys.getenv("GITHUB_TOKEN")
-          Sys.getenv("GITHUB_PAT")
-          gitcreds::gitcreds_get()
-          gitcreds::gitcreds_get()$password
-
           Rscript -e "remotes::install_github('massimilianotamborrino/sdbmpABC')"
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
