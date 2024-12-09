@@ -30,4 +30,4 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
       - name: Run tests
-        run: uv run pytest tests
+        run: uv run pytest -v --doctest-modules --cov=./jrnmm --cov-report=xml jrnmm
