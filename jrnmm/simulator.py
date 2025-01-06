@@ -1,3 +1,5 @@
+from typing import Union
+
 import chex
 import jax
 from einops import rearrange
@@ -13,10 +15,10 @@ def simulate(
     dt: float,
     t_end: float,
     initial_states: jax.Array,
-    Cs: float | jax.Array = 135,
-    mus: float | jax.Array = 220,
-    sigmas: float | jax.Array = 2000,
-    gains: float | jax.Array = 0.0,
+    Cs: Union[float, jax.Array] = 135,
+    mus: Union[float, jax.Array] = 220,
+    sigmas: Union[float, jax.Array] = 2000,
+    gains: Union[float, jax.Array] = 0.0,
     sigma_4: float = 0.01,
     sigma_6: float = 1.0,
     A: float = 3.25,
