@@ -12,13 +12,15 @@ classifiers = [
     "Development Status :: 1 - Planning",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 dependencies = [
-    "jax>=0.4.31",
-    "numpy>=1.26.4",
-    "chex>=0.1.87",
+    "jax>=0.4.17",
+    "numpy>=1.24.4",
+    "chex>=0.1.85",
     "einops>=0.8.0",
 ]
 dynamic = ["version"]
