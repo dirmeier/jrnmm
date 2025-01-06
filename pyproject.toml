@@ -37,7 +37,7 @@ dev-dependencies = [
     "rpy2==3.5.12",
     "pytest>=8.3.4",
     "matplotlib>=3.9.3",
-    "scipy>=1.14.1",
+    "scipy>=1.11.4",
     "jupyter>=1.1.1",
     "fybdthemes>=0.1.2",
     "pre-commit>=4.0.1",
