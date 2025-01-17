@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name =  "jrnmm"
-description = "Sentence that is used as description in project.toml"
+description = "Simulating trajectories from the stochastic Jansen-Rit neural mass model"
 authors = [{name = "Simon Dirmeier", email = "sfyrbnd@pm.me"}]
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -24,6 +24,9 @@ dependencies = [
     "einops>=0.8.0",
 ]
 dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/dirmeier/jrnmm"
 
 [tool.setuptools]
 packages = ["jrnmm"]

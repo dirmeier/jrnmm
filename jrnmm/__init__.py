@@ -1,6 +1,6 @@
-"""jrnmm: Sentence that is used as description in project.toml."""
+"""jrnmm: Simulating trajectories from the stochastic Jansen-Rit neural mass model"""
 
-__version__ = "0.1.0.post3"
+__version__ = "0.1.1.post2"
 
 from jrnmm.simulator import simulate
 

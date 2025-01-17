@@ -2,6 +2,7 @@
 
 [![Project Status](http://www.repostatus.org/badges/latest/concept.svg)](http://www.repostatus.org/#concept)
 [![ci](https://github.com/dirmeier/jrnmm/workflows/ci/badge.svg)](https://github.com/dirmeier/jrnmm/actions?query=workflow%3Aci)
+[![version](https://img.shields.io/pypi/v/jrnmm.svg?colorB=black&style=flat)](https://pypi.org/project/sbijax/)
 
 ## About
 
